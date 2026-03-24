@@ -18,7 +18,7 @@ def test_ollama_healthcheck():
     try:
         resp = httpx.get("http://localhost:11434/api/tags", timeout=5.0)
         assert resp.status_code == 200
-    except Exception as e:
+    except (httpx.ConnectError, httpx.TimeoutException, httpx.HTTPStatusError) as e:
         pytest.skip(f"Ollama not available: {e}")
 
 
@@ -30,7 +30,7 @@ def test_model_is_pulled():
         tags = resp.json().get("models", [])
         names = [t["name"] for t in tags]
         assert any(model in n for n in names), f"{model} not found in {names}"
-    except Exception as e:
+    except (httpx.ConnectError, httpx.TimeoutException, httpx.HTTPStatusError) as e:
         pytest.skip(f"Ollama not available: {e}")
 
 
@@ -39,5 +39,5 @@ def test_webapp_responds():
     try:
         resp = httpx.get("http://localhost:8080/", timeout=5.0)
         assert resp.status_code == 200
-    except Exception as e:
+    except (httpx.ConnectError, httpx.TimeoutException, httpx.HTTPStatusError) as e:
         pytest.skip(f"Webapp not available: {e}")

@@ -18,10 +18,10 @@ async def run(agents: int, days: int, resume: str | None) -> None:
     llm = OllamaClient()
     if resume:
         sim = Simulation.from_snapshot(resume, llm=llm)
-        print(f"[social-town] Resumed from step {sim.current_step}")
+        logger.info(f"[social-town] Resumed from step {sim.current_step}")
     else:
         sim = Simulation(n_agents=agents, llm=llm)
-        print(f"[social-town] Starting: {agents} agents, {days} days")
+        logger.info(f"[social-town] Starting: {agents} agents, {days} days")
 
     app = create_app(sim=sim)
 
@@ -29,7 +29,7 @@ async def run(agents: int, days: int, resume: str | None) -> None:
     config = uvicorn.Config(app, host="0.0.0.0", port=8080, log_level="warning")
     server = uvicorn.Server(config)
     webapp_task = asyncio.create_task(server.serve())
-    print("[social-town] Dashboard at http://localhost:8080")
+    logger.info("[social-town] Dashboard at http://localhost:8080")
 
     total_steps = days * STEPS_PER_DAY
     for step_num in range(total_steps):
@@ -37,7 +37,7 @@ async def run(agents: int, days: int, resume: str | None) -> None:
         if step_num % 50 == 0:
             logger.info(f"[Main] Step {sim.current_step}/{total_steps}")
 
-    webapp_task.cancel()
+    server.should_exit = True
     try:
         await webapp_task
     except asyncio.CancelledError:

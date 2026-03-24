@@ -15,18 +15,6 @@ from evaluation.metrics import bimodality_coefficient
 
 __all__ = ["create_app"]
 
-
-def _compute_diffusion_rate(sim: Any) -> float:
-    """Fraction of agents with at least one injected-source memory."""
-    agents = getattr(sim, "agents", None) or getattr(sim, "personas", None) or []
-    if not agents:
-        return 0.0
-    aware = sum(
-        1 for agent in agents
-        if any(m.source_agent is None for m in agent.memory.memories)
-    )
-    return aware / len(agents)
-
 logger = logging.getLogger(__name__)
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -59,11 +47,12 @@ def create_app(sim: Any) -> FastAPI:
             opinions_flat.extend(p.opinion.values())
         bc = bimodality_coefficient(opinions_flat) if len(opinions_flat) >= 4 else 0.0
         n = len(sim.personas)
+        diffusion = getattr(sim, "diffusion_rate", 0.0)
         return {
             "step": sim.current_step,
             "network_density": sim.social_graph.density(n),
             "bc": bc,
-            "diffusion_rate": _compute_diffusion_rate(sim),
+            "diffusion_rate": diffusion,
             "agents": [
                 {"name": p.name, "location": p.location, "action": p.current_action[:60]}
                 for p in sim.personas
@@ -74,8 +63,11 @@ def create_app(sim: Any) -> FastAPI:
     async def stream_metrics() -> StreamingResponse:
         async def event_generator() -> AsyncGenerator[str, None]:
             while True:
-                data = await get_metrics()
-                yield f"data: {json.dumps(data)}\n\n"
+                try:
+                    data = await get_metrics()
+                    yield f"data: {json.dumps(data)}\n\n"
+                except Exception as exc:
+                    logger.warning("SSE metrics error: %s", exc)
                 await asyncio.sleep(2)
         return StreamingResponse(event_generator(), media_type="text/event-stream")
 

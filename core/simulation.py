@@ -56,6 +56,7 @@ class Simulation:
             self.social_graph.add_agent(p.id)
         self.town = Town()
         self._dialogue = DialogueEngine(llm=llm)
+        self._event_aware_agents: set[str] = set()
         try:
             os.makedirs(f"{data_dir}/snapshots", exist_ok=True)
         except OSError as e:
@@ -118,6 +119,8 @@ class Simulation:
                             credibility=new_cred,
                         )
                         partner.memory.add(m)
+                        if self._event_aware_agents:
+                            self._event_aware_agents.add(partner.id)
                         for topic_key, shift in [("community", 0.05)]:
                             partner.opinion[topic_key] = max(-1.0, min(1.0,
                                 partner.opinion.get(topic_key, 0.0) + shift * new_cred
@@ -141,6 +144,49 @@ class Simulation:
                 logger.error(f"[Sim] Snapshot write failed: {e}")
 
         return step_log
+
+    @property
+    def diffusion_rate(self) -> float:
+        """Fraction of agents aware of any injected event."""
+        if not self.personas:
+            return 0.0
+        return len(self._event_aware_agents) / len(self.personas)
+
+    def inject_event(
+        self,
+        event_type: str,
+        content: str,
+        seed_agents: list[str],
+        credibility: float,
+    ) -> None:
+        """Inject an event and track seed agents as aware."""
+        streams = {p.id: p.memory for p in self.personas}
+        from world.event_injector import EventInjector
+        injector = EventInjector(agent_streams=streams)
+        first_persona = self.personas[0] if self.personas else None
+
+        def embed_fn(text: str) -> list[float]:
+            import asyncio
+            if first_persona is None:
+                return []
+            return asyncio.get_event_loop().run_until_complete(
+                first_persona._embed(text)
+            )
+
+        def importance_fn(text: str) -> float:
+            return 5.0
+
+        injector.inject_event(
+            event_type=event_type,
+            content=content,
+            seed_agents=seed_agents,
+            credibility=credibility,
+            step=self.current_step,
+            embed_fn=embed_fn,
+            importance_fn=importance_fn,
+        )
+        for agent_id in seed_agents:
+            self._event_aware_agents.add(agent_id)
 
     def to_snapshot(self) -> dict:
         return {
