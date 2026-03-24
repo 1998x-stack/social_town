@@ -1,10 +1,11 @@
 import json
 import math
 import pytest
+from pathlib import Path
 from agents.memory.memory_stream import MemoryObject, MemoryStream
 from agents.memory.retrieval import Retriever, score_recency, score_importance, score_relevance
 
-FIXTURE_PATH = "tests/stage1_memory/fixtures/retrieval_cases.json"
+FIXTURE_PATH = Path(__file__).parent / "fixtures" / "retrieval_cases.json"
 
 def make_memory(d: dict, embed_fn) -> MemoryObject:
     m = MemoryObject(

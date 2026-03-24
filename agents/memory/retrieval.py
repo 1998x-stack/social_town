@@ -2,6 +2,7 @@
 from __future__ import annotations
 import math
 import numpy as np
+from typing import Callable
 from agents.memory.memory_stream import MemoryObject
 
 __all__ = ["Retriever", "score_recency", "score_importance", "score_relevance"]
@@ -31,7 +32,7 @@ def score_relevance(query_emb: list[float], mem_emb: list[float]) -> float:
 
 
 class Retriever:
-    def __init__(self, embed_fn) -> None:
+    def __init__(self, embed_fn: Callable[[str], list[float]]) -> None:
         self._embed = embed_fn
 
     def retrieve(

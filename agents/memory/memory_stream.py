@@ -2,6 +2,7 @@
 from __future__ import annotations
 import uuid
 from dataclasses import dataclass, field
+from typing import Callable
 
 __all__ = ["MemoryObject", "MemoryStream"]
 
@@ -68,7 +69,7 @@ class MemoryStream:
         ]
 
     @classmethod
-    def from_dict_list(cls, data: list[dict], embed_fn) -> "MemoryStream":
+    def from_dict_list(cls, data: list[dict], embed_fn: Callable[[str], list[float]]) -> "MemoryStream":
         """Restore from snapshot; embed_fn recomputes embeddings."""
         ms = cls()
         for d in data:
@@ -83,5 +84,5 @@ class MemoryStream:
             )
             obj.id = d["id"]
             obj.last_accessed = d["last_accessed"]
-            ms._memories.append(obj)
+            ms.add(obj)
         return ms
