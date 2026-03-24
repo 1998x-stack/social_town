@@ -1,17 +1,17 @@
 """Ollama LLM client with timeout protection and fallback."""
 from __future__ import annotations
 import inspect
+import logging
 import re
 from typing import Optional
 import httpx
 from sentence_transformers import SentenceTransformer
 from config.params import OLLAMA_HOST, MODEL_NAME, LLM_TIMEOUT, EMBEDDING_MODEL
+from core.errors import LLMError
 
 __all__ = ["OllamaClient", "LLMError"]
 
-
-class LLMError(Exception):
-    pass
+logger = logging.getLogger(__name__)
 
 
 class OllamaClient:
@@ -26,14 +26,6 @@ class OllamaClient:
         self._timeout = timeout
         self._st_model = SentenceTransformer(EMBEDDING_MODEL)
 
-    @staticmethod
-    async def _parse_json(resp: httpx.Response) -> dict:
-        """Call resp.json(), awaiting if necessary (handles AsyncMock in tests)."""
-        result = resp.json()
-        if inspect.isawaitable(result):
-            result = await result
-        return result
-
     async def generate(
         self,
         prompt: str,
@@ -46,11 +38,21 @@ class OllamaClient:
                     json={"model": self._model, "prompt": prompt, "stream": False},
                 )
                 resp.raise_for_status()
-                data = await self._parse_json(resp)
+                data = resp.json()
+                if inspect.isawaitable(data):
+                    data = await data
                 return data["response"].strip()
+        except httpx.TimeoutException as exc:
+            if fallback is not None:
+                logger.warning(f"[LLM] 调用超时，使用 fallback: {fallback}")
+                return fallback
+            logger.error(f"[LLM] 调用超时: {exc}")
+            raise LLMError(str(exc)) from exc
         except Exception as exc:
             if fallback is not None:
+                logger.warning(f"[LLM] 调用失败，使用 fallback: {fallback}")
                 return fallback
+            logger.error(f"[LLM] 调用失败: {exc}")
             raise LLMError(str(exc)) from exc
 
     async def score_importance(self, content: str) -> float:
@@ -62,8 +64,10 @@ class OllamaClient:
             numbers = re.findall(r"\b([1-9]|10)\b", raw)
             if numbers:
                 return float(numbers[0])
+            logger.warning("[LLM] 重要性评分 fallback=5.0")
             return 5.0
         except LLMError:
+            logger.warning("[LLM] 重要性评分 fallback=5.0")
             return 5.0
 
     async def embed(self, text: str) -> list[float]:
