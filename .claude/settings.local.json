@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:dl.acm.org)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:arxiv.org)",
+      "WebFetch(domain:artgor.medium.com)",
+      "WebFetch(domain:gonzoml.substack.com)",
+      "WebFetch(domain:lilianweng.github.io)",
+      "WebFetch(domain:hai.stanford.edu)",
+      "WebFetch(domain:ar5iv.labs.arxiv.org)",
+      "Bash(docker --version)",
+      "Bash(ollama list:*)",
+      "Read(//usr/local/bin/**)",
+      "Bash(/usr/local/bin/docker --version)"
+    ]
+  }
+}
