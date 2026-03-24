@@ -1,5 +1,6 @@
 """Agent Persona: cognitive loop entry point."""
 from __future__ import annotations
+import inspect
 import logging
 from typing import Any
 from agents.memory.memory_stream import MemoryObject, MemoryStream
@@ -99,10 +100,9 @@ class Persona:
         p.location = data["location"]
         p.current_action = data["current_action"]
         p.opinion = data["opinion"]
-        import inspect as _inspect
         st_model = getattr(llm, "_st_model", None)
         _use_real_model = False
-        if st_model is not None and not isinstance(st_model, _inspect.Parameter.__class__):
+        if st_model is not None and not isinstance(st_model, inspect.Parameter.__class__):
             encode_fn = getattr(st_model, "encode", None)
             if encode_fn is not None and callable(encode_fn):
                 # Check without actually calling (avoid unawaited coroutine warning)
@@ -110,10 +110,10 @@ class Persona:
                 _coro = None
                 try:
                     _coro = encode_fn("test")
-                    if not _inspect.isawaitable(_coro):
+                    if not inspect.isawaitable(_coro):
                         _use_real_model = True
                 finally:
-                    if _inspect.isawaitable(_coro):
+                    if inspect.isawaitable(_coro):
                         _coro.close()  # cleanly discard mock coroutine
         if _use_real_model:
             embed_fn_sync = lambda t: st_model.encode(t).tolist()

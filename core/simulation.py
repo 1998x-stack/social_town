@@ -16,7 +16,7 @@ __all__ = ["Simulation"]
 
 logger = logging.getLogger(__name__)
 
-_AGENT_SEEDS: list[tuple[str, str]] = [
+_AGENT_SEEDS: tuple[tuple[str, str], ...] = (
     ("Alice", "A diligent economics student who loves books"),
     ("Bob", "A friendly cafe owner interested in local politics"),
     ("Carol", "A nurse who cares deeply about public health"),
@@ -27,7 +27,7 @@ _AGENT_SEEDS: list[tuple[str, str]] = [
     ("Henry", "A local politician campaigning for mayor"),
     ("Iris", "A librarian who knows everyone in town"),
     ("Jack", "A skeptical trader with strong opinions"),
-]
+)
 
 
 class Simulation:
@@ -55,6 +55,7 @@ class Simulation:
         for p in self.personas:
             self.social_graph.add_agent(p.id)
         self.town = Town()
+        self._dialogue = DialogueEngine(llm=llm)
         try:
             os.makedirs(f"{data_dir}/snapshots", exist_ok=True)
         except OSError as e:
@@ -68,7 +69,6 @@ class Simulation:
             self.current_day += 1
 
         step_log: dict = {"step": self.current_step, "actions": []}
-        _dlg = DialogueEngine(llm=self._llm)
 
         for persona in self.personas:
             # Perceive nearby agents
@@ -96,7 +96,7 @@ class Simulation:
                 edge = self.social_graph.get_edge(persona.id, partner.id)
                 if edge.intimacy >= 0.15 or random.random() < 0.1:
                     topic = perceived_str or "the town news"
-                    utterance = await _dlg.generate_utterance(
+                    utterance = await self._dialogue.generate_utterance(
                         speaker=persona.name, listener=partner.name,
                         relationship=f"intimacy={edge.intimacy:.2f}",
                         context=perceived_str, topic=topic,
