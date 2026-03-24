@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>Social Town Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: monospace; background: #0d1117; color: #c9d1d9; padding: 16px; }
+    h1 { color: #58a6ff; margin-bottom: 12px; font-size: 1.2rem; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .step-badge { background: #21262d; padding: 4px 12px; border-radius: 4px; font-size: 0.85rem; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .chart-box { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; }
+    .chart-box h3 { font-size: 0.8rem; color: #8b949e; margin-bottom: 8px; }
+    .agent-list { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; overflow-y: auto; max-height: 280px; }
+    .agent-row { font-size: 0.75rem; padding: 4px 0; border-bottom: 1px solid #21262d; }
+    .inject-panel { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; }
+    .inject-panel h3 { color: #8b949e; margin-bottom: 12px; font-size: 0.85rem; }
+    .inject-panel input, .inject-panel select { background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; padding: 6px 10px; border-radius: 4px; margin-right: 8px; font-family: monospace; }
+    .inject-panel button { background: #238636; color: white; border: none; padding: 6px 16px; border-radius: 4px; cursor: pointer; }
+    .inject-panel button:hover { background: #2ea043; }
+    canvas { width: 100% !important; height: 180px !important; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Social Town Dashboard</h1>
+    <div class="step-badge" id="step-badge">Step: — | Day: —</div>
+  </div>
+
+  <div class="grid">
+    <div class="chart-box"><h3>网络密度</h3><canvas id="densityChart"></canvas></div>
+    <div class="chart-box"><h3>意见极化 (BC)</h3><canvas id="bcChart"></canvas></div>
+    <div class="chart-box"><h3>信息扩散率</h3><canvas id="diffusionChart"></canvas></div>
+    <div class="agent-list" id="agent-list"><h3 style="font-size:0.8rem;color:#8b949e;margin-bottom:8px">Agent 状态</h3></div>
+  </div>
+
+  <div class="inject-panel">
+    <h3>事件注入</h3>
+    <select id="event-type">
+      <option value="rumor">谣言</option>
+      <option value="breaking_news">突发新闻</option>
+      <option value="public_health">公共卫生</option>
+      <option value="election">选举</option>
+    </select>
+    <input id="event-content" type="text" placeholder="事件内容..." style="width:40%">
+    <input id="credibility" type="number" min="0" max="1" step="0.1" value="0.7" style="width:80px">
+    <button onclick="injectEvent()">注入事件</button>
+  </div>
+
+<script>
+const MAX_POINTS = 60;
+const labels = [];
+const densityData = [], bcData = [], diffusionData = [];
+let knownAgents = 0;
+
+const densityChart = new Chart(document.getElementById('densityChart').getContext('2d'), {
+  type: 'line',
+  data: { labels, datasets: [{ label: '网络密度', data: densityData, borderColor: '#58a6ff', tension: 0.3, pointRadius: 2, fill: false }] },
+  options: { animation: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#8b949e', maxTicksLimit: 8 } }, y: { ticks: { color: '#8b949e' }, min: 0, max: 1 } } }
+});
+const bcChart = new Chart(document.getElementById('bcChart').getContext('2d'), {
+  type: 'line',
+  data: { labels, datasets: [{ label: 'BC', data: bcData, borderColor: '#f78166', tension: 0.3, pointRadius: 2, fill: false }] },
+  options: { animation: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#8b949e', maxTicksLimit: 8 } }, y: { ticks: { color: '#8b949e' }, min: 0, max: 2 } } }
+});
+const diffChart = new Chart(document.getElementById('diffusionChart').getContext('2d'), {
+  type: 'line',
+  data: { labels, datasets: [{ label: '扩散率', data: diffusionData, borderColor: '#3fb950', tension: 0.3, pointRadius: 2, fill: false }] },
+  options: { animation: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#8b949e', maxTicksLimit: 8 } }, y: { ticks: { color: '#8b949e' }, min: 0, max: 1 } } }
+});
+
+const es = new EventSource('/api/stream');
+es.onmessage = (e) => {
+  const d = JSON.parse(e.data);
+  const day = Math.floor(d.step / 288) + 1;
+  document.getElementById('step-badge').textContent = `Step: ${d.step} | Day: ${day}`;
+  if (labels.length >= MAX_POINTS) { labels.shift(); densityData.shift(); bcData.shift(); diffusionData.shift(); }
+  labels.push(d.step);
+  densityData.push(d.network_density);
+  bcData.push(d.bc);
+  diffusionData.push(knownAgents / Math.max(d.agents.length, 1));
+  densityChart.update(); bcChart.update(); diffChart.update();
+  const list = document.getElementById('agent-list');
+  list.innerHTML = '<h3 style="font-size:0.8rem;color:#8b949e;margin-bottom:8px">Agent 状态</h3>';
+  (d.agents || []).forEach(a => {
+    const div = document.createElement('div');
+    div.className = 'agent-row';
+    div.textContent = `${a.name} @ ${a.location} → ${a.action}`;
+    list.appendChild(div);
+  });
+};
+
+async function injectEvent() {
+  const body = {
+    event_type: document.getElementById('event-type').value,
+    content: document.getElementById('event-content').value,
+    seed_agent_ids: ['agent_00'],
+    credibility: parseFloat(document.getElementById('credibility').value),
+  };
+  await fetch('/api/inject', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  knownAgents = 1;
+}
+</script>
+</body>
+</html>

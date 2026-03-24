@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./ollama-entrypoint.sh:/entrypoint.sh
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    ports:
+      - "11434:11434"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:11434/api/tags"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+
+  social-town:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - MODEL_NAME=${MODEL_NAME:-qwen2.5:0.5b}
+      - NUM_AGENTS=${NUM_AGENTS:-10}
+      - SIMULATION_DAYS=${SIMULATION_DAYS:-3}
+      - HF_HOME=/app/.cache/huggingface
+    volumes:
+      - ../data:/app/data
+      - hf_cache:/app/.cache/huggingface
+    ports:
+      - "8080:8080"
+
+volumes:
+  ollama_data:
+  hf_cache:
