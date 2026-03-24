@@ -5,7 +5,7 @@ services:
     image: ollama/ollama:latest
     volumes:
       - ollama_data:/root/.ollama
-      - ./ollama-entrypoint.sh:/entrypoint.sh
+      - ./docker/ollama-entrypoint.sh:/entrypoint.sh
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
     ports:
       - "11434:11434"
@@ -13,7 +13,7 @@ services:
       test: ["CMD", "curl", "-sf", "http://localhost:11434/api/tags"]
       interval: 10s
       timeout: 5s
-      retries: 18
+      retries: 12
       start_period: 30s
 
   social-town:

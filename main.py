@@ -1,5 +1,7 @@
 """Entry point — concurrent simulation + webapp."""
 from __future__ import annotations
+
+__all__: list[str] = []
 import argparse
 import asyncio
 import logging
@@ -7,7 +9,7 @@ import uvicorn
 from llm.client import OllamaClient
 from core.simulation import Simulation
 from webapp.server import create_app
-from config.params import STEPS_PER_DAY
+from config.params import STEPS_PER_DAY, NUM_AGENTS, SIMULATION_DAYS
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +47,8 @@ async def run(agents: int, days: int, resume: str | None) -> None:
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     parser = argparse.ArgumentParser(description="Social Town Simulation")
-    parser.add_argument("--agents", type=int, default=10)
-    parser.add_argument("--days", type=int, default=3)
+    parser.add_argument("--agents", type=int, default=NUM_AGENTS)
+    parser.add_argument("--days", type=int, default=SIMULATION_DAYS)
     parser.add_argument("--resume", type=str, default=None,
                         help="Path to snapshot JSON to resume from")
     args = parser.parse_args()

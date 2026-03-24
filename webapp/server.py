@@ -15,6 +15,18 @@ from evaluation.metrics import bimodality_coefficient
 
 __all__ = ["create_app"]
 
+
+def _compute_diffusion_rate(sim: Any) -> float:
+    """Fraction of agents with at least one injected-source memory."""
+    agents = getattr(sim, "agents", None) or getattr(sim, "personas", None) or []
+    if not agents:
+        return 0.0
+    aware = sum(
+        1 for agent in agents
+        if any(m.source_agent is None for m in agent.memory.memories)
+    )
+    return aware / len(agents)
+
 logger = logging.getLogger(__name__)
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -51,6 +63,7 @@ def create_app(sim: Any) -> FastAPI:
             "step": sim.current_step,
             "network_density": sim.social_graph.density(n),
             "bc": bc,
+            "diffusion_rate": _compute_diffusion_rate(sim),
             "agents": [
                 {"name": p.name, "location": p.location, "action": p.current_action[:60]}
                 for p in sim.personas

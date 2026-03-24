@@ -46,24 +46,23 @@
     </select>
     <input id="event-content" type="text" placeholder="事件内容..." style="width:40%">
     <input id="credibility" type="number" min="0" max="1" step="0.1" value="0.7" style="width:80px">
-    <button onclick="injectEvent()">注入事件</button>
+    <input type="text" id="seedAgents" placeholder="Seed agent IDs (comma-separated, default: agent_00)" style="width:100%;margin-top:8px">
+    <button onclick="injectEvent()" style="margin-top:8px">注入事件</button>
   </div>
 
 <script>
 const MAX_POINTS = 60;
 const labels = [];
 const densityData = [], bcData = [], diffusionData = [];
-let knownAgents = 0;
-
 const densityChart = new Chart(document.getElementById('densityChart').getContext('2d'), {
   type: 'line',
   data: { labels, datasets: [{ label: '网络密度', data: densityData, borderColor: '#58a6ff', tension: 0.3, pointRadius: 2, fill: false }] },
   options: { animation: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#8b949e', maxTicksLimit: 8 } }, y: { ticks: { color: '#8b949e' }, min: 0, max: 1 } } }
 });
 const bcChart = new Chart(document.getElementById('bcChart').getContext('2d'), {
-  type: 'line',
-  data: { labels, datasets: [{ label: 'BC', data: bcData, borderColor: '#f78166', tension: 0.3, pointRadius: 2, fill: false }] },
-  options: { animation: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#8b949e', maxTicksLimit: 8 } }, y: { ticks: { color: '#8b949e' }, min: 0, max: 2 } } }
+  type: 'bar',
+  data: { labels, datasets: [{ label: 'BC', data: bcData, backgroundColor: '#f78166' }] },
+  options: { animation: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#8b949e', maxTicksLimit: 8 } }, y: { ticks: { color: '#8b949e' }, min: 0, max: 1 } } }
 });
 const diffChart = new Chart(document.getElementById('diffusionChart').getContext('2d'), {
   type: 'line',
@@ -80,7 +79,7 @@ es.onmessage = (e) => {
   labels.push(d.step);
   densityData.push(d.network_density);
   bcData.push(d.bc);
-  diffusionData.push(knownAgents / Math.max(d.agents.length, 1));
+  diffusionData.push(d.diffusion_rate !== undefined ? d.diffusion_rate : 0);
   densityChart.update(); bcChart.update(); diffChart.update();
   const list = document.getElementById('agent-list');
   list.innerHTML = '<h3 style="font-size:0.8rem;color:#8b949e;margin-bottom:8px">Agent 状态</h3>';
@@ -93,14 +92,15 @@ es.onmessage = (e) => {
 };
 
 async function injectEvent() {
+  const seedRaw = document.getElementById('seedAgents').value.trim();
+  const seed_agent_ids = seedRaw ? seedRaw.split(',').map(s => s.trim()) : ['agent_00'];
   const body = {
     event_type: document.getElementById('event-type').value,
     content: document.getElementById('event-content').value,
-    seed_agent_ids: ['agent_00'],
+    seed_agent_ids,
     credibility: parseFloat(document.getElementById('credibility').value),
   };
   await fetch('/api/inject', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  knownAgents = 1;
 }
 </script>
 </body>

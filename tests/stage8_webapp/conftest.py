@@ -13,6 +13,7 @@ def mock_sim() -> MagicMock:
     sim = MagicMock()
     sim.current_step = 5
     sim.personas = []
+    sim.agents = []
     sim.social_graph.edge_count.return_value = 0
     sim.social_graph.density.return_value = 0.0
     return sim
