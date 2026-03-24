@@ -2,9 +2,6 @@ import pytest
 from unittest.mock import patch, AsyncMock
 from llm.client import OllamaClient, LLMError
 
-@pytest.fixture
-def client():
-    return OllamaClient(host="http://localhost:11434", model="qwen2.5:0.5b", timeout=5.0)
 
 @pytest.mark.asyncio
 async def test_generate_returns_string(client):
