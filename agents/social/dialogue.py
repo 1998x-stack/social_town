@@ -1,6 +1,7 @@
 """Dialogue generation between two agents."""
 from __future__ import annotations
 import logging
+from typing import Any
 from llm.prompts import dialogue_prompt
 
 __all__ = ["DialogueEngine"]
@@ -9,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class DialogueEngine:
-    def __init__(self, llm: object) -> None:
+    def __init__(self, llm: Any) -> None:
         self._llm = llm
 
     async def generate_utterance(

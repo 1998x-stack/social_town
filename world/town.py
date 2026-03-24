@@ -7,7 +7,7 @@ __all__ = ["Town", "Location"]
 
 logger = logging.getLogger(__name__)
 
-LOCATIONS = ["Home", "Library", "Cafe", "Park", "Office", "Market", "Town Square"]
+LOCATIONS: tuple[str, ...] = ("Home", "Library", "Cafe", "Park", "Office", "Market", "Town Square")
 
 
 @dataclass

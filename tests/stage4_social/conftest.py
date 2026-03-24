@@ -4,8 +4,9 @@ import pytest
 from unittest.mock import AsyncMock
 from world.social_graph import SocialGraph
 from agents.social.dialogue import DialogueEngine
+from agents.memory.memory_stream import MemoryStream
 
-__all__ = ["graph", "mock_llm", "dialogue_engine"]
+__all__ = ["graph", "mock_llm", "dialogue_engine", "memory_stream"]
 
 
 @pytest.fixture
@@ -27,3 +28,8 @@ def mock_llm() -> AsyncMock:
 @pytest.fixture
 def dialogue_engine(mock_llm: AsyncMock) -> DialogueEngine:
     return DialogueEngine(llm=mock_llm)
+
+
+@pytest.fixture
+def memory_stream() -> MemoryStream:
+    return MemoryStream()

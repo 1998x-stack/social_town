@@ -55,7 +55,7 @@ class SocialGraph:
         if n_agents < 2:
             return 0.0
         max_edges = n_agents * (n_agents - 1)
-        return self.edge_count() / max_edges
+        return min(1.0, self.edge_count() / max_edges)
 
     def to_dict(self) -> dict:
         return {
