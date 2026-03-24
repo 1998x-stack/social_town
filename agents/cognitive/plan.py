@@ -36,7 +36,7 @@ class PlanningEngine:
         self.state.l1_index = 0
         self.state.l2_activities = []
         self.state.l2_index = 0
-        logger.debug(f"[Plan] {self._name} L1 day={day}: {self.state.l1_blocks}")
+        logger.info(f"[Plan] {self._name} L1 day={day}: {self.state.l1_blocks}")
 
     def current_l1_block(self) -> str:
         if not self.state.l1_blocks:
@@ -54,7 +54,7 @@ class PlanningEngine:
             activities.append("Rest|Home")
         self.state.l2_activities = activities[:3]
         self.state.l2_index = 0
-        logger.debug(f"[Plan] {self._name} L2 block={block}: {self.state.l2_activities}")
+        logger.info(f"[Plan] {self._name} L2 block={block}: {self.state.l2_activities}")
 
     def current_l2_activity(self) -> str:
         if not self.state.l2_activities:
@@ -73,6 +73,7 @@ class PlanningEngine:
 
     def replan_l2(self) -> None:
         """Discard current L2 plan; caller must call generate_l2 again."""
+        current_block = self.current_l1_block()
         self.state.l2_activities = []
         self.state.l2_index = 0
-        logger.info(f"[Plan] {self._name} L2 replanned (reset)")
+        logger.info(f"[Plan] {self._name} L2 replanned (discarded block={current_block})")

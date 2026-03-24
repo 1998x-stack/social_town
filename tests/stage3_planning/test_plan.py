@@ -1,3 +1,4 @@
+from __future__ import annotations
 import pytest
 import math
 from unittest.mock import AsyncMock
@@ -73,3 +74,27 @@ async def test_l1_location_entropy_across_5_calls(engine, mock_llm):
     total = sum(counts.values())
     entropy = -sum((c / total) * math.log2(c / total) for c in counts.values())
     assert entropy > 0.5, f"Entropy {entropy:.3f} too low"
+
+
+@pytest.mark.asyncio
+async def test_l1_pads_to_4_when_llm_returns_garbage(engine, mock_llm):
+    """Verify padding when LLM returns no pipe-separated lines."""
+    mock_llm.generate.return_value = "totally garbage no pipes here"
+    await engine.generate_l1(day=1, top3_memories="")
+    assert len(engine.state.l1_blocks) == 4
+    for block in engine.state.l1_blocks:
+        assert "|" in block
+
+
+def test_current_l1_block_when_empty(engine):
+    """Defensive guard: returns fallback string when l1_blocks is empty."""
+    assert engine.state.l1_blocks == []
+    result = engine.current_l1_block()
+    assert "|" in result  # guard value has pipe format
+
+
+def test_current_l2_activity_when_empty(engine):
+    """Defensive guard: returns fallback string when l2_activities is empty."""
+    assert engine.state.l2_activities == []
+    result = engine.current_l2_activity()
+    assert "|" in result

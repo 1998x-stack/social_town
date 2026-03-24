@@ -4,6 +4,8 @@ import pytest
 from unittest.mock import AsyncMock
 from agents.cognitive.plan import PlanningEngine
 
+__all__ = ["mock_llm", "engine"]
+
 FAKE_L1 = "Morning|Breakfast|Home\nAfternoon|Study|Library\nEvening|Walk|Park\nNight|Read|Home"
 
 
